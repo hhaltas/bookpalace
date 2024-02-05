@@ -24,14 +24,6 @@ class FavorietScreen extends StatelessWidget {
                     item!.volumeInfo!.imageLinks!.smallThumbnail!,
                   ),
                 ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => BookDetailScreen(book: item),
-                    ),
-                  );
-                },
               );
             },
           );

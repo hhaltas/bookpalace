@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   BookService _service = BookService();
   List<SomeRootEntityItems?> books = [];
   List<SomeRootEntityItems?> searchBooks = [];
-  List<SomeRootEntityItems?> favoriesBooks = [];
+  List<SomeRootEntityItems?> favBooks = [];
   final List<SomeRootEntityItems?> selectedBook = [];
 
   bool isSearch = false;
@@ -77,11 +77,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void toggleFavorite(item) {
     setState(() {
-      if (favoriesBooks.contains(item)) {
-        favoriesBooks.remove(item);
+      if (favBooks.contains(item)) {
+        favBooks.remove(item);
         StoreProvider.of<AppState>(context).dispatch(RemoveBookAction(item));
       } else {
-        favoriesBooks.add(item);
+        favBooks.add(item);
         StoreProvider.of<AppState>(context).dispatch(AddBookAction(item));
         setState(() {});
       }
@@ -90,7 +90,80 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return StoreConnector<AppState, List<SomeRootEntityItems>>(
+        converter: (store) => store.state.favoriteBooks,
+        builder: (context, favoriteBooks) {
+          return Column(
+            children: [
+              // Arama çubuğu
+              CupertinoTextField(
+                controller: searchController,
+                focusNode: _focusNode,
+                textInputAction: TextInputAction.search,
+                placeholder: '${AppGlobals.placeHolderText}',
+                onSubmitted: (value) {
+                  searchFunc(value);
+                },
+              ),
+              // Liste
+              Expanded(
+                child: !isLoading
+                    ? const Center(child: CircularProgressIndicator.adaptive())
+                    : GrockList(
+                        itemCount: searchBooks.isEmpty
+                            ? books.length
+                            : searchBooks.length,
+                        itemBuilder: (context, index) {
+                          var item = searchBooks.isEmpty
+                              ? books[index]!
+                              : searchBooks[index]!;
+                          return Card(
+                            child: ListTile(
+                              title: Text(item!.volumeInfo!.title!),
+                              subtitle:
+                                  Text(item!.volumeInfo!.authors!.toString()),
+                              leading: CircleAvatar(
+                                backgroundImage: NetworkImage(
+                                  item!.volumeInfo!.imageLinks!.smallThumbnail!,
+                                ),
+                              ),
+                              trailing: IconButton(
+                                // Sağ tarafta başka bir widget
+                                icon: Icon(
+                                  isFavorite
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: favoriteBooks.contains(item)
+                                      ? AppGlobals.favorieSelected
+                                      : AppGlobals.favorieUnSelected,
+                                ),
+                                onPressed: () {
+                                  toggleFavorite(item);
+                                  // print('${favoriteBooks.contains(item)}');
+                                },
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        BookDetailScreen(book: item),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          );
+        });
+  }
+}
+
+/*
+Column(
       children: [
         // Arama çubuğu
         CupertinoTextField(
@@ -123,10 +196,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         trailing: IconButton(
-                          // Sağ tarafta başka bir widget (IconButton) ekleyin
+                          // Sağ tarafta başka bir widget
                           icon: Icon(
                             isFavorite ? Icons.favorite : Icons.favorite_border,
-                            color: favoriesBooks.contains(books[index])
+                            color: favoriesBooks.contains(books[index]) || 
                                 ? AppGlobals.favorieSelected
                                 : AppGlobals.favorieUnSelected,
                           ),
@@ -150,5 +223,5 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ],
     );
-  }
-}
+
+ */
