@@ -1,0 +1,1 @@
+enum ReducerAction { addBook, removeBook }

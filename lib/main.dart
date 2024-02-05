@@ -1,27 +1,43 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:bookpalace/model/appState.dart';
+import 'package:bookpalace/model/book_model.dart';
 import 'package:bookpalace/pages/favories/favories.dart';
 import 'package:bookpalace/pages/home/home.dart';
 import 'package:flutter/material.dart';
 import 'package:bookpalace/utils/app_globals.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_redux/flutter_redux.dart';
+import 'package:redux/redux.dart';
+import 'package:bookpalace/logic/reducers.dart';
 
 void main() {
-  runApp(const MyApp());
+  final store = Store<AppState>(
+    appReducer,
+    initialState: AppState.initialState(),
+  );
+
+  runApp(MyApp(store: store));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Store<AppState> store;
+
+  const MyApp({Key? key, required this.store}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: AppGlobals.seedColorSheme),
-        useMaterial3: true,
+    return StoreProvider(
+      store: store,
+      child: MaterialApp(
+        title: 'Flutter Demo',
+        theme: ThemeData(
+          colorScheme:
+              ColorScheme.fromSeed(seedColor: AppGlobals.seedColorSheme),
+          useMaterial3: true,
+        ),
+        home: MyHomePage(),
       ),
-      home: MyHomePage(),
     );
   }
 }
