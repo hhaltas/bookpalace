@@ -4,7 +4,6 @@ import 'package:bookpalace/model/book_model.dart';
 import 'package:bookpalace/pages/book/book.dart';
 import 'package:bookpalace/pages/favories/favories.dart';
 import 'package:bookpalace/services/book_service.dart';
-import 'package:bookpalace/utils/app_store.dart';
 import 'package:flutter/material.dart';
 import 'package:grock/grock.dart';
 import 'package:bookpalace/utils/app_globals.dart';
@@ -16,21 +15,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<String> liste = [
-    'Öğe 1',
-    'Öğe 2',
-    'Öğe 3',
-    // ... Diğer öğeler
-  ];
-
-  List<String> filtrelenmisListe = [];
   BookService _service = BookService();
   List<SomeRootEntityItems?> books = [];
   List<SomeRootEntityItems?> searchBooks = [];
   List<SomeRootEntityItems?> favoriesBooks = [];
   final List<SomeRootEntityItems?> selectedBook = [];
-
-  List<bool> isFavoriteList = List.generate(20, (index) => false);
 
   bool isSearch = false;
   bool isLoading = false;
@@ -38,10 +27,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late FocusNode _focusNode;
 
+  //search Liste text
   TextEditingController searchController = TextEditingController();
   final String searchQuery = '';
-
-  TextEditingController aramaController = TextEditingController();
 
   @override
   void initState() {
@@ -61,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void searchFunc(String value) {
-    print('${searchBooks.isEmpty}');
+    // print('${searchBooks.isEmpty}');
     if (value.length >= 3) {
       books.forEach((res) {
         if (res!.volumeInfo!.title!
@@ -105,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
           controller: searchController,
           focusNode: _focusNode,
           textInputAction: TextInputAction.search,
-          placeholder: 'Yazar veya Kitap adı yazınız...',
+          placeholder: '${AppGlobals.placeHolderText}',
           onSubmitted: (value) {
             searchFunc(value);
           },
@@ -135,8 +123,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           icon: Icon(
                             isFavorite ? Icons.favorite : Icons.favorite_border,
                             color: favoriesBooks.contains(books[index])
-                                ? Colors.red
-                                : Colors.grey,
+                                ? AppGlobals.favorieSelected
+                                : AppGlobals.favorieUnSelected,
                           ),
                           onPressed: () {
                             toggleFavorite(index);
