@@ -1,7 +1,13 @@
+import 'dart:convert';
+import 'dart:developer';
 import 'package:bookpalace/model/book_model.dart';
+import 'package:bookpalace/pages/favories/favories.dart';
+import 'package:bookpalace/pages/home/home.dart';
 import 'package:bookpalace/services/book_service.dart';
 import 'package:flutter/material.dart';
 import 'package:grock/grock.dart';
+import 'package:bookpalace/utils/app_globals.dart';
+import 'package:flutter/cupertino.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,21 +22,6 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
         useMaterial3: true,
       ),
@@ -59,13 +50,19 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   BookService _service = BookService();
-  int _counter = 0;
-  bool? isLoading;
   List<SomeRootEntityItems?> books = [];
-  List<SomeRootEntityItemsVolumeInfo?> booksVolume = [];
+  List<SomeRootEntityItems?> searchBooks = [];
+  bool isSearch = false;
+  bool isLoading = false;
+  late FocusNode _focusNode;
+
+  TextEditingController searchController = TextEditingController();
+  String searchQuery = '';
+
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
     _service.fetchBook().then((value) => {
           if (value != null)
             {
@@ -79,35 +76,233 @@ class _MyHomePageState extends State<MyHomePage> {
         });
   }
 
+  void searchFunc(String value) {
+    print('${searchBooks.isEmpty}');
+    if (value.length >= 3) {
+      books.forEach((res) {
+        if (res!.volumeInfo!.title!
+                .toLowerCase()
+                .trim()
+                .contains(value.toLowerCase().trim()) ||
+            res!.volumeInfo!.authors!
+                .toString()
+                .toLowerCase()
+                .trim()
+                .contains(value.toLowerCase().trim())) {
+          if (!searchBooks.contains(res)) {
+            searchBooks.add(res);
+            setState(() {});
+          }
+        }
+      });
+    } else {
+      searchBooks.clear();
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+      appBar: CupertinoNavigationBar(
+        middle: appbarTitle(),
+        trailing: searchIconWidget(),
       ),
-      body: Center(
-          // Center is a layout widget. It takes a single child and positions it
-          // in the middle of the parent.
-          child: ListView.builder(
-              itemCount: books.length,
+      body: !isLoading
+          ? const Center(child: CircularProgressIndicator.adaptive())
+          : GrockList(
+              itemCount:
+                  searchBooks.isEmpty ? books.length : searchBooks.length,
               itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(books[index]!.volumeInfo!.title!),
-                  subtitle: Text(books[index]!.volumeInfo!.authors!.toString()),
+                var item =
+                    searchBooks.isEmpty ? books[index]! : searchBooks[index]!;
+                return Card(
+                  child: ListTile(
+                    title: Text(item!.volumeInfo!.title!),
+                    subtitle: Text(item!.volumeInfo!.authors!.toString()),
+                    leading: CircleAvatar(
+                      backgroundImage: NetworkImage(
+                        item!.volumeInfo!.imageLinks!.smallThumbnail!,
+                      ),
+                    ),
+                  ),
                 );
-              })),
+              },
+            ),
     );
   }
+
+  Widget searchIconWidget() {
+    if (isSearch) {
+      return GrockContainer(
+        padding: 10.onlyLeftP,
+        child: const Icon(CupertinoIcons.clear, size: 24),
+        onTap: () {
+          setState(() {
+            _focusNode.unfocus();
+            isSearch = false;
+            searchBooks.clear();
+          });
+        },
+      );
+    } else {
+      return GrockContainer(
+        padding: 10.onlyLeftP,
+        child: const Icon(CupertinoIcons.search, size: 24),
+        onTap: () {
+          setState(() {
+            _focusNode.requestFocus();
+            isSearch = true;
+          });
+        },
+      );
+    }
+  }
+
+  Widget appbarTitle() {
+    if (isSearch) {
+      return CupertinoTextField(
+        controller: searchController,
+        focusNode: _focusNode,
+        textInputAction: TextInputAction.search,
+        placeholder: 'Yazar veya Kitap adı yazınız...',
+        onSubmitted: (value) {
+          searchFunc(value);
+        },
+      );
+    } else {
+      return const Text('Kitap Sarayı');
+    }
+  }
+
+  // Widget build(BuildContext context) {
+  //   return MaterialApp(
+  //     home: DefaultTabController(
+
+  //       length: 2,
+  //       child: Scaffold(
+  //         appBar: AppBar(
+  //           bottom: TabBar(tabs: [
+  //             Tab(
+  //               text: 'Kitaplar',
+  //             ),
+  //             Tab(
+  //               text: 'Favoriler',
+  //             ),
+  //           ]),
+  //         ),
+  //         body: TabBarView(
+  //           children: [
+  //             MyHome(),
+  //             FavorietScreen(),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 }
+
+
+/*
+
+Widget build(BuildContext context) {
+    return SafeArea(
+      child: DefaultTabController(
+        length: 3,
+        child: Scaffold(
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              sizedBox40,
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+                child: Text(
+                  "Kitap Sarayı",
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: SizedBox(
+                  height: 45,
+                  child: TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.all(0),
+                      prefixIcon: const Icon(Icons.search_outlined),
+                      filled: true,
+                      border: InputBorder.none,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.all(10),
+                      height: 50,
+                      width: MediaQuery.of(context).size.width,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 2, vertical: 6),
+                        child: TabBar(
+                          onTap: (index) {
+                            setState(() {
+                              selectIndex = index;
+                            });
+                          },
+                          labelPadding:
+                              const EdgeInsets.symmetric(horizontal: 05),
+                          tabs: [
+                            Container(
+                              width: 230,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(5),
+                                // color: const Color(0xffe9e9e9)),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'Kitaplar',
+                                  style: TextStyle(fontSize: 15),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              width: 230,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(5),
+                                // color: const Color(0xffe9e9e9)),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'Favorilerim',
+                                  style: TextStyle(color: gBlack, fontSize: 15),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+ */
