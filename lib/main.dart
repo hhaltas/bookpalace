@@ -1,15 +1,31 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:bookpalace/model/book_model.dart';
+import 'package:bookpalace/pages/book/book.dart';
 import 'package:bookpalace/pages/favories/favories.dart';
 import 'package:bookpalace/pages/home/home.dart';
 import 'package:bookpalace/services/book_service.dart';
+import 'package:bookpalace/utils/app_store.dart';
 import 'package:flutter/material.dart';
 import 'package:grock/grock.dart';
 import 'package:bookpalace/utils/app_globals.dart';
 import 'package:flutter/cupertino.dart';
 
+class FavoriYonetici {
+  List<SomeRootEntityItems> favoriListesi = [];
+
+  void favoriEkle(SomeRootEntityItems item) {
+    favoriListesi.add(item);
+  }
+
+  void favoriKaldir(SomeRootEntityItems item) {
+    favoriListesi.remove(item);
+  }
+}
+
 void main() {
+  // Uygulamayı çalıştırırken kullanılacak örnek favori yöneticisi
+  FavoriYonetici favoriYonetici = FavoriYonetici();
   runApp(const MyApp());
 }
 
@@ -33,15 +49,6 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
@@ -52,12 +59,19 @@ class _MyHomePageState extends State<MyHomePage> {
   BookService _service = BookService();
   List<SomeRootEntityItems?> books = [];
   List<SomeRootEntityItems?> searchBooks = [];
+  List<SomeRootEntityItems?> favoriesBooks = [];
+  final List<SomeRootEntityItems?> selectedBook = [];
+
+  List<bool> isFavoriteList = List.generate(20, (index) => false);
+
   bool isSearch = false;
   bool isLoading = false;
+  bool isFavorite = false;
+
   late FocusNode _focusNode;
 
   TextEditingController searchController = TextEditingController();
-  String searchQuery = '';
+  final String searchQuery = '';
 
   @override
   void initState() {
@@ -101,36 +115,130 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  @override
+  void toggleFavorite(int index) {
+    setState(() {
+      if (favoriesBooks.contains(books[index])) {
+        favoriesBooks.remove(books[index]);
+      } else {
+        favoriesBooks.add(books[index]);
+        setState(() {});
+      }
+    });
+  }
+
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CupertinoNavigationBar(
-        middle: appbarTitle(),
-        trailing: searchIconWidget(),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            "Kitap Sarayı",
+            style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+          ),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: 'Kitaplar'),
+              Tab(text: 'Favoriler'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            // Birinci sekme sayfası
+            HomeScreen(),
+
+            // İkinci sekme sayfası
+            FavorietScreen(),
+          ],
+        ),
       ),
-      body: !isLoading
-          ? const Center(child: CircularProgressIndicator.adaptive())
-          : GrockList(
-              itemCount:
-                  searchBooks.isEmpty ? books.length : searchBooks.length,
-              itemBuilder: (context, index) {
-                var item =
-                    searchBooks.isEmpty ? books[index]! : searchBooks[index]!;
-                return Card(
-                  child: ListTile(
-                    title: Text(item!.volumeInfo!.title!),
-                    subtitle: Text(item!.volumeInfo!.authors!.toString()),
-                    leading: CircleAvatar(
-                      backgroundImage: NetworkImage(
-                        item!.volumeInfo!.imageLinks!.smallThumbnail!,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
     );
   }
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       home: DefaultTabController(
+//         length: 2,
+//         child: Scaffold(
+//           appBar: AppBar(
+//             title: Text('Kitap Sarayı'),
+//             bottom: TabBar(tabs: [
+//               Tab(
+//                 text: 'Kitaplar',
+//               ),
+//               Tab(
+//                 text: 'Favoriler',
+//               ),
+//             ]),
+//           ),
+//           body: TabBarView(
+//             children: [
+//               Padding(
+//                 padding: const EdgeInsets.all(8.0),
+//                 child: TextField(
+//                   // controller: aramaController,
+//                   decoration: InputDecoration(
+//                     labelText: 'Ara',
+//                     prefixIcon: Icon(Icons.search),
+//                   ),
+//                 ),
+//               ),
+//               Expanded(
+//                 child: !isLoading
+//                     ? const Center(child: CircularProgressIndicator.adaptive())
+//                     : GrockList(
+//                         itemCount: searchBooks.isEmpty
+//                             ? books.length
+//                             : searchBooks.length,
+//                         itemBuilder: (context, index) {
+//                           var item = searchBooks.isEmpty
+//                               ? books[index]!
+//                               : searchBooks[index]!;
+//                           return Card(
+//                             child: ListTile(
+//                               title: Text(item!.volumeInfo!.title!),
+//                               subtitle:
+//                                   Text(item!.volumeInfo!.authors!.toString()),
+//                               leading: CircleAvatar(
+//                                 backgroundImage: NetworkImage(
+//                                   item!.volumeInfo!.imageLinks!.smallThumbnail!,
+//                                 ),
+//                               ),
+//                               trailing: IconButton(
+//                                 // Sağ tarafta başka bir widget (IconButton) ekleyin
+//                                 icon: Icon(
+//                                   isFavorite
+//                                       ? Icons.favorite
+//                                       : Icons.favorite_border,
+//                                   color: favoriesBooks.contains(books[index])
+//                                       ? Colors.red
+//                                       : Colors.grey,
+//                                 ),
+//                                 onPressed: () {
+//                                   toggleFavorite(index);
+//                                 },
+//                               ),
+//                               onTap: () {
+//                                 Navigator.push(
+//                                   context,
+//                                   MaterialPageRoute(
+//                                     builder: (context) =>
+//                                         BookDetailScreen(book: item),
+//                                   ),
+//                                 );
+//                               },
+//                             ),
+//                           );
+//                         },
+//                       ),
+//               ),
+//               FavorietScreen(),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
 
   Widget searchIconWidget() {
     if (isSearch) {
@@ -202,7 +310,6 @@ class _MyHomePageState extends State<MyHomePage> {
   //   );
   // }
 }
-
 
 /*
 
@@ -304,5 +411,56 @@ Widget build(BuildContext context) {
       ),
     );
   }
+
+ */
+
+/*
+  !isLoading
+                  ? const Center(child: CircularProgressIndicator.adaptive())
+                  : GrockList(
+                      itemCount: searchBooks.isEmpty
+                          ? books.length
+                          : searchBooks.length,
+                      itemBuilder: (context, index) {
+                        var item = searchBooks.isEmpty
+                            ? books[index]!
+                            : searchBooks[index]!;
+                        return Card(
+                          child: ListTile(
+                            title: Text(item!.volumeInfo!.title!),
+                            subtitle:
+                                Text(item!.volumeInfo!.authors!.toString()),
+                            leading: CircleAvatar(
+                              backgroundImage: NetworkImage(
+                                item!.volumeInfo!.imageLinks!.smallThumbnail!,
+                              ),
+                            ),
+                            trailing: IconButton(
+                              // Sağ tarafta başka bir widget (IconButton) ekleyin
+                              icon: Icon(
+                                isFavorite
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: favoriesBooks.contains(books[index])
+                                    ? Colors.red
+                                    : Colors.grey,
+                              ),
+                              onPressed: () {
+                                toggleFavorite(index);
+                              },
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      BookDetailScreen(book: item),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
 
  */
