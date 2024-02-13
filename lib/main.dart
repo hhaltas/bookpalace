@@ -9,7 +9,6 @@ import 'package:bookpalace/utils/app_globals.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:redux/redux.dart';
-import 'package:bookpalace/logic/reducers.dart';
 
 void main() {
   final store = Store<AppState>(
